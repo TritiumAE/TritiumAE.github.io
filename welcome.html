@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Personalized Welcome Page.</title>
+		<meta name="description" content="Personalized Welcome Page">
+		<meta name="keywords" content="cis1440, nasser, pearce, personal, part4">
+		<link rel="stylesheet" href="site-template.css">
+		<style type="text/css">
+
+
+		</style>
+	</head>
+	<body>
+    <div class="container">
+		
+        <header id="top">
+			<h1>Personalized Welcome Page</h1>
+		</header>
+        <nav>
+				<a href="index.html" class="nav-button">Personal Home Page</a>
+				<a href="aboutme.html" class="nav-button">Second Web Page</a>
+				<a href="welcome.html" class="nav-button active">Personalized Welcome Page</a>
+			
+        </nav>
+		<main class="flex-container">
+			<div class="row">
+				<div class="column side">
+				<h1 class="onetitle">Personalized</h1>
+				<h2 class="twotitle">Welcome Page...</h2></div>
+				<hr class="custom-hr">
+				<div class="column middle">
+					
+					<p id="pmsg"></p>
+					<p id="lastVisit"></p>
+					<form id="nameForm">
+						<label for="nameInput">Your name:</label>
+						<input type="text" id="nameInput" autocomplete="name" required>
+						<button type="submit">Save</button>
+					</form>
+
+					<script>
+						// set variables
+						const NAME_KEY = 'userName';
+						const VISIT_KEY = 'lastVisit';
+						const pmsg = document.getElementById('pmsg');
+						const lastVisitEl = document.getElementById('lastVisit');
+						
+						let userName = localStorage.getItem(NAME_KEY) || '';
+						let currentWeather = 'loading…';
+						
+						const previousVisit = localStorage.getItem(VISIT_KEY);
+						localStorage.setItem(VISIT_KEY, new Date().toISOString());
+				
+							// ---- Formatting helpers (Eastern Time) ----
+							function easternTime(d) {
+								return d.toLocaleTimeString('en-US', {
+									timeZone: 'America/Detroit',
+									hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+								});
+							}
+							function easternDate(d) {
+								return d.toLocaleDateString('en-US', {
+									timeZone: 'America/Detroit',
+									year: 'numeric', month: '2-digit', day: '2-digit'
+								});
+							}
+							function easternHour(d) {
+								// hour 0–23 in Eastern time, for the morning/afternoon/evening test
+								return Number(d.toLocaleString('en-US', {
+									timeZone: 'America/Detroit', hour: '2-digit', hour12: false
+								})) % 24;
+							}
+
+							// ---- Show the last-visit line once (not every second) ----
+							if (previousVisit) {
+								const d = new Date(previousVisit);
+								lastVisitEl.textContent =
+									`Btw, you last visited on ${easternDate(d)} at ${easternTime(d)} EST.`;
+							}
+
+							// ---- 4 + 2 + 6. Build the welcome message, refreshed every second ----
+							function buildWelcome() {
+								const now = new Date();
+								const hour = easternHour(now);
+								const partOfDay =
+									hour < 12 ? 'morning' :
+									hour < 18 ? 'afternoon' :
+									            'evening';
+								const who = userName ? ` ${userName}` : '';
+								pmsg.textContent =
+									`Good ${partOfDay}${who}! It's ${easternTime(now)} EST on ${easternDate(now)}, ` +
+									`and it's ${currentWeather} right now.`;
+							}
+
+							// ---- 3. Weather via Fetch API (Detroit), fetched ONCE ----
+							const weatherDescriptions = {
+								0: 'clear sky', 1: 'mainly clear', 2: 'partly cloudy', 3: 'overcast',
+								45: 'fog', 48: 'depositing rime fog',
+								51: 'light drizzle', 53: 'moderate drizzle', 55: 'dense drizzle',
+								61: 'slight rain', 63: 'moderate rain', 65: 'heavy rain',
+								66: 'light freezing rain', 67: 'heavy freezing rain',
+								71: 'slight snow', 73: 'moderate snow', 75: 'heavy snow', 77: 'snow grains',
+								80: 'slight rain showers', 81: 'moderate rain showers', 82: 'violent rain showers',
+								85: 'slight snow showers', 86: 'heavy snow showers',
+								95: 'thunderstorm', 96: 'thunderstorm with slight hail', 99: 'thunderstorm with heavy hail'
+							};
+							function mapWeatherCodeToDescription(code) {
+								return weatherDescriptions[code] || 'unknown';
+							}
+							async function fetchWeather() {
+								try {
+									const response = await fetch(
+										'https://api.open-meteo.com/v1/forecast?latitude=42.3314&longitude=-83.0458&current_weather=true'
+									);
+									if (!response.ok) throw new Error(`HTTP ${response.status}`);
+									const data = await response.json();
+									currentWeather = mapWeatherCodeToDescription(data.current_weather.weathercode);
+								} catch (err) {
+									currentWeather = 'unavailable';
+									console.error('Weather fetch failed:', err);
+								}
+								buildWelcome(); // repaint now that we have a real description
+							}
+
+							// ---- Name form ----
+							document.getElementById('nameForm').addEventListener('submit', (event) => {
+								event.preventDefault();
+								const nameInput = document.getElementById('nameInput');
+								const name = nameInput.value.trim();
+								if (!name) return;
+								userName = name;
+								localStorage.setItem(NAME_KEY, name);
+								buildWelcome();       // update the greeting immediately
+								nameInput.value = '';
+							});
+
+							// ---- Kick everything off ----
+							buildWelcome();                 // paint immediately (weather shows "loading…")
+							setInterval(buildWelcome, 1000); // requirement 6: tick every second
+							fetchWeather();                  // async; updates the message when it returns
+						</script>
+					
+				</div>
+			</div>
+			<hr class="custom-hr">
+
+		</main>
+		<a href="#top">Back to Top</a>
+
+		<footer>&copy; 2026 Michael Pearce</footer>
+	</body>
+</html>
